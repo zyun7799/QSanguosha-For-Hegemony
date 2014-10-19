@@ -1,22 +1,23 @@
 /********************************************************************
-	Copyright (c) 2013-2014 - QSanguosha-Hegemony Team
+    Copyright (c) 2013-2014 - QSanguosha-Rara
 
-  This file is part of QSanguosha-Hegemony.
+    This file is part of QSanguosha-Hegemony.
 
-  This game is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 3.0 of the License, or (at your option) any later version.
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
 
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
 
-  See the LICENSE file for more details.
+    See the LICENSE file for more details.
 
-  QSanguosha-Hegemony Team	
-*********************************************************************/
+    QSanguosha-Rara
+    *********************************************************************/
+
 #include "clientstruct.h"
 #include "engine.h"
 #include "client.h"
@@ -36,7 +37,7 @@ time_t ServerInfoStruct::getCommandTimeout(QSanProtocol::CommandType command, QS
     else if (command == QSanProtocol::S_COMMAND_CHOOSE_GENERAL)
         timeOut = OperationTimeout * 1500;
     else if (command == QSanProtocol::S_COMMAND_SKILL_GUANXING
-             || command == QSanProtocol::S_COMMAND_ARRANGE_GENERAL)
+        || command == QSanProtocol::S_COMMAND_ARRANGE_GENERAL)
         timeOut = OperationTimeout * 2000;
     else if (command == QSanProtocol::S_COMMAND_NULLIFICATION)
         timeOut = NullificationCountDown * 1000;
@@ -49,7 +50,7 @@ time_t ServerInfoStruct::getCommandTimeout(QSanProtocol::CommandType command, QS
 }
 
 bool ServerInfoStruct::parse(const QString &str) {
-    QRegExp rx("(.*):(@?\\w+):(\\d+):(\\d+):([+\\w]*):([RCFAMS]*)");
+    QRegExp rx("(.*):(@?\\w+):(\\d+):(\\d+):([\\w-]+(?:\\+[\\w-]+)*)?:([RCFAMS]*)");
     if (!rx.exactMatch(str)) {
         // older version, just take the player count
         int count = str.split(":").at(1).toInt();
@@ -60,7 +61,8 @@ bool ServerInfoStruct::parse(const QString &str) {
     QStringList texts = rx.capturedTexts();
     if (texts.isEmpty()) {
         DuringGame = false;
-    } else {
+    }
+    else {
         DuringGame = true;
 
         Name = texts.at(1);
@@ -70,9 +72,9 @@ bool ServerInfoStruct::parse(const QString &str) {
         NullificationCountDown = texts.at(4).toInt();
 
         QStringList ban_packages = texts.at(5).split("+");
-        QList<const Package *> packages = Sanguosha->findChildren<const Package *>();
+        const QList<const Package *> &packages = Sanguosha->getPackages();
         Extensions.clear();
-        foreach (const Package *package, packages) {
+        foreach(const Package *package, packages) {
             QString package_name = package->objectName();
             if (ban_packages.contains(package_name))
                 package_name = "!" + package_name;
@@ -85,7 +87,7 @@ bool ServerInfoStruct::parse(const QString &str) {
         RandomSeat = flags.contains("R");
         EnableCheat = flags.contains("C");
         FreeChoose = EnableCheat && flags.contains("F");
-        EnableAI = flags.contains("A");
+        ForbidAddingRobot = flags.contains("A");
         DisableChat = flags.contains("M");
         FirstShowingReward = flags.contains("S");
     }
@@ -102,7 +104,7 @@ ServerInfoWidget::ServerInfoWidget(bool show_lack) {
     random_seat_label = new QLabel;
     enable_cheat_label = new QLabel;
     free_choose_label = new QLabel;
-    enable_ai_label = new QLabel;
+    forbid_adding_robot_label = new QLabel;
     fisrt_showing_reward_label = new QLabel;
     time_limit_label = new QLabel;
 
@@ -119,7 +121,7 @@ ServerInfoWidget::ServerInfoWidget(bool show_lack) {
     layout->addRow(tr("Random seat"), random_seat_label);
     layout->addRow(tr("Enable cheat"), enable_cheat_label);
     layout->addRow(tr("Free choose"), free_choose_label);
-    layout->addRow(tr("Enable AI"), enable_ai_label);
+    layout->addRow(tr("Forbid adding robot"), forbid_adding_robot_label);
     layout->addRow(tr("Enable First Showing Reward"), fisrt_showing_reward_label);
     layout->addRow(tr("Operation time"), time_limit_label);
     layout->addRow(tr("Extension packages"), list_widget);
@@ -127,7 +129,8 @@ ServerInfoWidget::ServerInfoWidget(bool show_lack) {
     if (show_lack) {
         lack_label = new QLabel;
         layout->addRow(tr("Lack"), lack_label);
-    } else
+    }
+    else
         lack_label = NULL;
 
     setLayout(layout);
@@ -144,7 +147,7 @@ void ServerInfoWidget::fill(const ServerInfoStruct &info, const QString &address
     random_seat_label->setText(info.RandomSeat ? tr("Enabled") : tr("Disabled"));
     enable_cheat_label->setText(info.EnableCheat ? tr("Enabled") : tr("Disabled"));
     free_choose_label->setText(info.FreeChoose ? tr("Enabled") : tr("Disabled"));
-    enable_ai_label->setText(info.EnableAI ? tr("Enabled") : tr("Disabled"));
+    forbid_adding_robot_label->setText(info.ForbidAddingRobot ? tr("Enabled") : tr("Disabled"));
     fisrt_showing_reward_label->setText(info.FirstShowingReward ? tr("Enabled") : tr("Disabled"));
 
     if (info.OperationTimeout == 0)
@@ -157,7 +160,7 @@ void ServerInfoWidget::fill(const ServerInfoStruct &info, const QString &address
     static QIcon enabled_icon("image/system/enabled.png");
     static QIcon disabled_icon("image/system/disabled.png");
 
-    foreach (QString extension, info.Extensions) {
+    foreach(QString extension, info.Extensions) {
         bool checked = !extension.startsWith("!");
         if (!checked)
             extension.remove("!");
@@ -186,7 +189,7 @@ void ServerInfoWidget::clear() {
     random_seat_label->clear();
     enable_cheat_label->clear();
     free_choose_label->clear();
-    enable_ai_label->clear();
+    forbid_adding_robot_label->clear();
     fisrt_showing_reward_label->clear();
     time_limit_label->clear();
     list_widget->clear();

@@ -1,9 +1,30 @@
+--[[********************************************************************
+	Copyright (c) 2013-2014 - QSanguosha-Rara
+
+  This file is part of QSanguosha-Hegemony.
+
+  This game is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License as
+  published by the Free Software Foundation; either version 3.0
+  of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
+
+  See the LICENSE file for more details.
+
+  QSanguosha-Rara
+*********************************************************************]]
+
 -- This is the start script of QSanguosha
 
 package.path = package.path .. ";./lua/lib/?.lua"
 
 dofile "lua/utilities.lua"
 dofile "lua/sgs_ex.lua"
+dofile "lua/about_us.lua"
 
 function load_translation(file)
 	local t = dofile(file)
@@ -75,4 +96,6 @@ if not done_loading then
 	load_translations()
 	done_loading = sgs.QVariant(true)
 	sgs.Sanguosha:setProperty("DoneLoading", done_loading)
+
+	createAboutUsPages()
 end

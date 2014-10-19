@@ -1,24 +1,41 @@
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
+
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
 #ifndef CARDEDITOR_H
 #define CARDEDITOR_H
 
-#include <QDialog>
-#include <QGraphicsView>
-#include <QGroupBox>
-#include <QLineEdit>
-#include <QComboBox>
-#include <QCheckBox>
-#include <QSpinBox>
-#include <QTabWidget>
-#include <QGraphicsPixmapItem>
-#include <QFontDatabase>
-#include <QTextEdit>
-#include <QHBoxLayout>
+#include <QGraphicsObject>
 #include <QMainWindow>
-#include <QFontDialog>
+#include <QGraphicsScene>
 
 class QSanSelectableItem;
+class SkillTitle;
+class CompanionBox;
+class QCheckBox;
+class QComboBox;
+class QSpinBox;
+class QFontDialog;
+class QGroupBox;
+class QPushButton;
 
-class BlackEdgeTextItem: public QGraphicsObject{
+class BlackEdgeTextItem : public QGraphicsObject{
     Q_OBJECT
 
 public:
@@ -45,7 +62,7 @@ private:
     int outline;
 };
 
-class AATextItem: public QGraphicsTextItem{
+class AATextItem : public QGraphicsTextItem{
 public:
     AATextItem(const QString &text, QGraphicsItem *parent);
 
@@ -53,10 +70,7 @@ protected:
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 };
 
-class SkillTitle;
-class CompanionBox;
-
-class SkillBox: public QGraphicsObject{
+class SkillBox : public QGraphicsObject{
     Q_OBJECT
 
 public:
@@ -82,16 +96,14 @@ public slots:
 protected:
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 
-
 private:
-
     QString kingdom;
     QList<SkillTitle *> skill_titles;
     AATextItem *skill_description;
     AATextItem *copyright_text;
 };
 
-class AvatarRectItem: public QGraphicsRectItem{
+class AvatarRectItem : public QGraphicsRectItem {
 public:
     AvatarRectItem(qreal width, qreal height, const QRectF &box_rect, int font_size);
     void toCenter(QGraphicsScene *scene);
@@ -103,7 +115,7 @@ private:
     BlackEdgeTextItem *name;
 };
 
-class CardScene: public QGraphicsScene{
+class CardScene : public QGraphicsScene {
     Q_OBJECT
 
 public:
@@ -177,12 +189,13 @@ private:
     QMap<QFontDialog *, QPushButton *> dialog2button;
 
     QWidget *createLeft();
+    QWidget *createMiddle();
     QGroupBox *createTextItemBox(const QString &text,
-                                 const QFont &font,
-                                 int skip,
-                                 BlackEdgeTextItem *item
-                                 );
-    QLayout *createGeneralLayout();
+        const QFont &font,
+        int skip,
+        BlackEdgeTextItem *item
+        );
+    QWidget *createPropertiesBox();
     QWidget *createSkillBox();
 
 protected:

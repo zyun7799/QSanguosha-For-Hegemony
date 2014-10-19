@@ -1,22 +1,52 @@
-#include "cardeditor.h"
-#include "mainwindow.h"
-#include "engine.h"
-#include "settings.h"
-#include "QSanSelectableItem.h"
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
 
-#include <QFormLayout>
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
+#include "cardeditor.h"
+#include "settings.h"
+#include "card.h"
+#include "engine.h"
+#include "qsanselectableitem.h"
+
+#include <QPainter>
+#include <QLineEdit>
+#include <QHBoxLayout>
+#include <QGraphicsView>
+#include <QTextDocument>
+#include <QKeyEvent>
+#include <QAction>
+#include <QGraphicsSceneMouseEvent>
+#include <QMenu>
+#include <QGraphicsSceneContextMenuEvent>
+#include <QMenuBar>
 #include <QPushButton>
 #include <QFileDialog>
+#include <QGroupBox>
+#include <QSpinBox>
+#include <QFormLayout>
+#include <QComboBox>
+#include <QCheckBox>
 #include <QLabel>
-#include <QGraphicsSceneMouseEvent>
-#include <QApplication>
-#include <QCursor>
-#include <QKeyEvent>
-#include <QMenu>
-#include <QMenuBar>
-#include <QGraphicsRectItem>
-#include <QInputDialog>
 #include <QBitmap>
+#include <QFontDialog>
+#include <QApplication>
+#include <QInputDialog>
 #include <QClipboard>
 
 BlackEdgeTextItem::BlackEdgeTextItem()
@@ -26,7 +56,7 @@ BlackEdgeTextItem::BlackEdgeTextItem()
 }
 
 QRectF BlackEdgeTextItem::boundingRect() const{
-    if(text.isEmpty())
+    if (text.isEmpty())
         return QRectF();
 
     QFontMetrics metric(font);
@@ -53,14 +83,14 @@ void BlackEdgeTextItem::setOutline(int outline){
 }
 
 void BlackEdgeTextItem::toCenter(const QRectF &rect){
-    if(text.isEmpty())
+    if (text.isEmpty())
         return;
 
     QFontMetrics metric(font);
-    setX((rect.width() - metric.width(text.at(0)))/2);
+    setX((rect.width() - metric.width(text.at(0))) / 2);
 
     int total_height = (metric.height() - metric.descent()) * text.length();
-    setY((rect.height() - total_height)/2);
+    setY((rect.height() - total_height) / 2);
 }
 
 void BlackEdgeTextItem::setText(const QString &text){
@@ -78,12 +108,12 @@ void BlackEdgeTextItem::setFont(const QFont &font){
 }
 
 void BlackEdgeTextItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *){
-    if(text.isEmpty())
+    if (text.isEmpty())
         return;
 
     painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
 
-    if(outline > 0){
+    if (outline > 0){
         QPen pen(Qt::black);
         pen.setWidth(outline);
         painter->setPen(pen);
@@ -92,33 +122,32 @@ void BlackEdgeTextItem::paint(QPainter *painter, const QStyleOptionGraphicsItem 
     QFontMetrics metric(font);
     int height = metric.height() - metric.descent() + skip;
 
-    int i;
-    for(i=0; i<text.length(); i++){
+    for (int i = 0; i < text.length(); i++){
 
         QString text;
         text.append(this->text.at(i));
 
         QPainterPath path;
-        path.addText(0, (i+1) * height, font, text);
+        path.addText(0, (i + 1) * height, font, text);
 
-        if(outline > 0)
+        if (outline > 0)
             painter->drawPath(path);
 
         painter->fillPath(path, color);
     }
 
-    if(hasFocus()){
+    if (hasFocus()){
         QPen red_pen(Qt::red);
         painter->setPen(red_pen);
         QRectF rect = boundingRect();
-        painter->drawRect(-1, -1, rect.width()+2, rect.height()+2);
+        painter->drawRect(-1, -1, rect.width() + 2, rect.height() + 2);
     }
 }
 
 static QAction *EditAction;
 static QAction *DeleteAction;
 
-class SkillTitle: public QGraphicsPixmapItem{
+class SkillTitle : public QGraphicsPixmapItem{
 public:
     SkillTitle(const QString &kingdom, const QString &text)
         :title_text(NULL), frame(NULL)
@@ -146,14 +175,16 @@ public:
     }
 
     void setText(const QString &text){
-       title_text->setPlainText(text);
+        title_text->setPlainText(text);
     }
 
     QString text() const{
         return title_text->toPlainText();
     }
 
-    void setFont(const QFont &font){
+    void setFont(const QFont &_font){
+        QFont font = _font;
+        font.setStyleHint(QFont::AnyStyle, QFont::PreferAntialias);
         title_text->setFont(font);
     }
 
@@ -162,31 +193,31 @@ public:
     }
 
     virtual void keyPressEvent(QKeyEvent *event){
-        if(!hasFocus()){
+        if (!hasFocus()){
             event->ignore();
             return;
         }
 
         int delta_y = 0;
-        switch(event->key()){
+        switch (event->key()){
         case Qt::Key_Up: delta_y = -1; break;
         case Qt::Key_Down: delta_y = 1; break;
         case Qt::Key_Delete:{
-                if(DeleteAction)
-                    DeleteAction->trigger();
-                return;
-            }
+            if (DeleteAction)
+                DeleteAction->trigger();
+            return;
+        }
 
         default:
             break;
         }
 
-        if(delta_y == 0){
+        if (delta_y == 0){
             event->ignore();
             return;
         }
 
-        if(event->modifiers() & Qt::ShiftModifier)
+        if (event->modifiers() & Qt::ShiftModifier)
             delta_y *= 5;
 
         event->accept();
@@ -202,7 +233,7 @@ public:
     }
 
     virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *){
-        if(EditAction)
+        if (EditAction)
             EditAction->trigger();
     }
 
@@ -219,7 +250,7 @@ private:
     QGraphicsRectItem *frame;
 };
 
-class CompanionBox: public QGraphicsPixmapItem{
+class CompanionBox : public QGraphicsPixmapItem{
 public:
     CompanionBox(const QString &text = QString())
         :title_text(NULL)
@@ -244,7 +275,9 @@ public:
         return title_text->toPlainText();
     }
 
-    void setFont(const QFont &font){
+    void setFont(const QFont &_font){
+        QFont font = _font;
+        font.setStyleHint(QFont::AnyStyle, QFont::PreferAntialias);
         title_text->setFont(font);
     }
 
@@ -297,46 +330,75 @@ AATextItem::AATextItem(const QString &text, QGraphicsItem *parent)
 }
 
 void AATextItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget){
-    if(hasFocus()){
+    if (hasFocus()){
         QGraphicsTextItem::paint(painter, option, widget);
         return;
     }
 
     painter->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
     QPainterPath path;
-    QFontMetrics fm(font());
-    QRegExp exp("(\\[b:[^\\[b:\\]]+\\])");
-    QString text = toPlainText();
-    exp.indexIn(text);
-    QStringList strs = exp.capturedTexts();
-    QStringList nor_strs = text.split(exp, QString::SkipEmptyParts);
-    QStringList all_strs;
-    QStringList operated;
-    foreach(QString str, strs + nor_strs) {
-        int removed_length = 0;
-        QString text_copy = text;
-        int i = text.indexOf(str);
-        int l = str.size();
-        for (int ind = 0; ind < operated.count(str); ++ ind) {
-            text_copy.remove(str);
-            removed_length += l;
-            i = text_copy.indexOf(str) + removed_length;
-        }
-        all_strs.insert(i, str);
-    }
+    QString s = toPlainText();
+    QTextDocument *doc = document();
+    qreal margin = doc->documentMargin();
+    QStringList lines = s.split("\n", QString::SkipEmptyParts);
 
-    QRegExp bold("\\[b:(.+)\\]");
-    foreach(QString string, all_strs) {
-        if (bold.exactMatch(string)) {
-            bold.indexIn(string);
-            static QFont bfont;
-            if (!bfont.bold()) {
-                bfont = font();
-                bfont.setBold(true);
+    QFont f = font();
+    f.setStyleHint(QFont::AnyStyle, QFont::PreferAntialias);
+    QFontMetrics fm(f);
+    QFont f_bold = f;
+    f_bold.setBold(true);
+    QFontMetrics fm_bold(f_bold);
+
+    int line = 0;
+    for (int i = 0; i < lines.length(); i++){
+        QString thisline = lines[i];
+        QStringList s1 = thisline.split(']', QString::SkipEmptyParts);
+        QStringList s_non_bold, s_bold;
+        foreach(QString s, s1){
+            if (!s.contains('[')){
+                s_non_bold << s;
+                s_bold << QString();
             }
-            path.addText(document()->documentMargin(), fm.height(), bfont, bold.cap());
-        } else
-            path.addText(document()->documentMargin(), fm.height(), font(), string);
+            else if (!s.startsWith('[')){
+                QStringList s2 = s.split('[', QString::SkipEmptyParts);
+                s_non_bold << s2.first();
+                s_bold << s2.last();
+            }
+            else {
+                s = s.mid(1);
+                s_non_bold << QString();
+                s_bold << s;
+            }
+        }
+
+        int width = 0;
+        for (int j = 0; j < s_non_bold.length(); j++){
+            QString non_bold = s_non_bold[j];
+            for (int k = 0; k < non_bold.length(); k++){
+                QChar c = non_bold[k];
+                QString str = c;
+                int width_c = fm.width(str);
+                if (width + width_c > doc->size().width()){
+                    ++line;
+                    width = 0;
+                }
+                path.addText(margin + width, fm.height() * (line + 1), f, str);
+                width += width_c;
+            }
+            QString bold = s_bold[j];
+            for (int k = 0; k < bold.length(); k++){
+                QChar c = bold[k];
+                QString str = c;
+                int width_c = fm_bold.width(str);
+                if (width + width_c > doc->size().width()){
+                    ++line;
+                    width = 0;
+                }
+                path.addText(margin + width, fm.height() * (line + 1), f_bold, str); //use fm.height not fm_bold.height, for sometimes the bold characters are not as high as the non-bold ones
+                width += width_c;
+            }
+        }
+        ++line;
     }
     painter->fillPath(path, defaultTextColor());
 }
@@ -350,11 +412,11 @@ void SkillBox::addSkill(const QString &text){
 }
 
 SkillTitle *SkillBox::getFocusTitle() const{
-    if(skill_titles.length() == 1)
+    if (skill_titles.length() == 1)
         return skill_titles.first();
     else{
         foreach(SkillTitle *skill_title, skill_titles){
-            if(skill_title->hasFocus()){
+            if (skill_title->hasFocus()){
                 return skill_title;
             }
         }
@@ -365,7 +427,7 @@ SkillTitle *SkillBox::getFocusTitle() const{
 
 void SkillBox::removeSkill(){
     SkillTitle *to_remove = getFocusTitle();
-    if(to_remove){
+    if (to_remove){
         skill_titles.removeOne(to_remove);
         delete to_remove;
     }
@@ -375,7 +437,7 @@ void SkillBox::saveConfig(){
     Config.beginGroup("CardEditor");
 
     Config.beginWriteArray("SkillTitles");
-    for(int i = 0; i < skill_titles.length(); i++){
+    for (int i = 0; i < skill_titles.length(); i++){
         Config.setArrayIndex(i);
 
         Config.setValue("TitleText", skill_titles.at(i)->text());
@@ -387,7 +449,7 @@ void SkillBox::saveConfig(){
     Config.setValue("SkillDescription", skill_description->toHtml());
     Config.setValue("SkillDescriptionFont", skill_description->font());
     Config.setValue("TinyFont", copyright_text->font());
-    if(!skill_titles.isEmpty()){
+    if (!skill_titles.isEmpty()){
         Config.setValue("SkillTitleFont", skill_titles.first()->font());
     }
 
@@ -400,14 +462,14 @@ void SkillBox::loadConfig(){
     Config.beginGroup("CardEditor");
 
     int size = Config.beginReadArray("SkillTitles");
-    for(int i=0; i<size; i++){
+    for (int i = 0; i < size; i++){
         Config.setArrayIndex(i);
 
         addSkill(Config.value("TitleText").toString());
 
         SkillTitle *item = skill_titles.last();
 
-        if(Config.contains("TitlePos"))
+        if (Config.contains("TitlePos"))
             item->setPos(Config.value("TitlePos").toPoint());
     }
 
@@ -448,14 +510,10 @@ void SkillBox::insertSuit(int index){
 }
 
 void SkillBox::insertBoldText(const QString &bold_text){
-    QTextCharFormat format;
-    format.setFontWeight(QFont::Bold);
-
-    skill_description->textCursor().insertText("[b:", format);
-    skill_description->textCursor().insertText(bold_text, format);
-    skill_description->textCursor().insertText("]", format);
-
-    skill_description->textCursor().insertText(tr(","), QTextCharFormat());
+    skill_description->textCursor().insertText("[");
+    skill_description->textCursor().insertText(bold_text);
+    skill_description->textCursor().insertText(tr(","));
+    skill_description->textCursor().insertText("]");
 }
 
 QRectF SkillBox::boundingRect() const{
@@ -495,8 +553,8 @@ AvatarRectItem::AvatarRectItem(qreal width, qreal height, const QRectF &box_rect
 
 void AvatarRectItem::toCenter(QGraphicsScene *scene){
     QRectF scene_rect = scene->sceneRect();
-    setPos((scene_rect.width() - rect().width())/2,
-           (scene_rect.height() - rect().height())/2);
+    setPos((scene_rect.width() - rect().width()) / 2,
+        (scene_rect.height() - rect().height()) / 2);
 }
 
 void AvatarRectItem::setKingdom(const QString &kingdom){
@@ -540,9 +598,10 @@ CardScene::CardScene()
     QGraphicsItemGroup *magatama_group = new QGraphicsItemGroup(NULL, this);
 #else
     QGraphicsItemGroup *magatama_group = new QGraphicsItemGroup;
+    addItem(magatama_group);
 #endif
 
-    for(int i = 0; i < 7; i++){
+    for (int i = 0; i < 7; i++){
         QGraphicsPixmapItem *item = new QGraphicsPixmapItem;
         magatamas << item;
         item->hide();
@@ -591,7 +650,8 @@ void CardScene::setFrame(const QString &kingdom, bool is_lord){
     if (is_lord) {
         path = QString("diy/%1-lord.png").arg(kingdom);
         title->setColor(QColor(171, 151, 90));
-    } else {
+    }
+    else {
         path = QString("diy/%1.png").arg(kingdom);
         title->setColor(QColor(246, 241, 125));
     }
@@ -675,7 +735,7 @@ BlackEdgeTextItem *CardScene::getTitleItem() const{
 void CardScene::keyPressEvent(QKeyEvent *event){
     QGraphicsScene::keyPressEvent(event);
 #ifdef QT_DEBUG
-    if(event->key() == Qt::Key_D){
+    if (event->key() == Qt::Key_D){
         QMessageBox::information(NULL, "", QString("%1, %2").arg(skill_box->x()).arg(skill_box->y()));
     }
 #endif
@@ -691,9 +751,9 @@ void CardScene::setRatio(int ratio){
 
 void CardScene::setMaxHp(int max_hp){
     int n = magatamas.length();
-    this->max_hp = max_hp = qBound(0, max_hp, n-1);
+    this->max_hp = max_hp = qBound(0, max_hp, n - 1);
 
-    for(int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         magatamas.at(i)->setVisible(i < max_hp);
 
     Config.setValue("CardEditor/MaxHP", max_hp);
@@ -751,14 +811,14 @@ void CardScene::makeTinyAvatar(){
 void CardScene::doneMakingAvatar(){
     QGraphicsRectItem *avatar_rect = NULL;
 
-    if(big_avatar_rect->isVisible())
+    if (big_avatar_rect->isVisible())
         avatar_rect = big_avatar_rect;
-    else if(small_avatar_rect->isVisible())
+    else if (small_avatar_rect->isVisible())
         avatar_rect = small_avatar_rect;
     else
         avatar_rect = tiny_avatar_rect;
 
-    if(avatar_rect){
+    if (avatar_rect){
         avatar_rect->setPen(Qt::NoPen);
 
         QRectF rect(avatar_rect->scenePos(), avatar_rect->rect().size());
@@ -783,7 +843,7 @@ void CardScene::setAvatarNameBox(const QString &text){
 }
 
 void CardScene::resetPhoto(){
-    if(photo){
+    if (photo){
         photo->deleteLater();
         Config.remove("CardEditor/Photo");
     }
@@ -800,17 +860,18 @@ void CardScene::contextMenuEvent(QGraphicsSceneContextMenuEvent *event){
 #else
     QGraphicsItem *item = itemAt(event->scenePos(), QTransform());
 #endif
-    if(item){
-        if(item->parentItem() == skill_box){
+    if (item){
+        if (item->parentItem() == skill_box){
             QGraphicsScene::contextMenuEvent(event);
             return;
-        }else if(item == big_avatar_rect || item == small_avatar_rect || item == tiny_avatar_rect){
+        }
+        else if (item == big_avatar_rect || item == small_avatar_rect || item == tiny_avatar_rect){
             done_menu->popup(event->screenPos());
             return;
         }
     }
 
-    if(!skill_box->hasFocus() && menu){
+    if (!skill_box->hasFocus() && menu){
         menu->popup(event->screenPos());
     }
 }
@@ -823,18 +884,18 @@ void CardScene::setCompanion(const QString &text){
     companion_box->setText(text);
 }
 
-void CardScene::setCompanionFont( const QFont &font )
+void CardScene::setCompanionFont(const QFont &font)
 {
     companion_box->setFont(font);
 }
 
-void CardScene::setCompanionVisible( bool visible )
+void CardScene::setCompanionVisible(bool visible)
 {
     companion_box->setVisible(visible);
 }
 
 CardEditor::CardEditor(QWidget *parent) :
-    QMainWindow(parent)
+QMainWindow(parent)
 {
     setWindowTitle(tr("Card editor"));
 
@@ -842,18 +903,19 @@ CardEditor::CardEditor(QWidget *parent) :
     QGraphicsView *view = new QGraphicsView;
 
     view->setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing |
-                        QPainter::SmoothPixmapTransform |
-                        QPainter::HighQualityAntialiasing
-                        );
+        QPainter::SmoothPixmapTransform |
+        QPainter::HighQualityAntialiasing
+        );
 
     card_scene = new CardScene;
     connect(card_scene, SIGNAL(avatar_snapped(QRectF)), this, SLOT(saveAvatar(QRectF)));
 
     view->setScene(card_scene);
     view->setFixedSize(card_scene->sceneRect().width() + 2,
-                       card_scene->sceneRect().height() + 2);
+        card_scene->sceneRect().height() + 2);
 
     layout->addWidget(createLeft());
+    layout->addWidget(createMiddle());
     layout->addWidget(view);
 
     QWidget *central_widget = new QWidget;
@@ -942,20 +1004,20 @@ CardEditor::CardEditor(QWidget *parent) :
 
 void CardEditor::updateButtonText(const QFont &font){
     QFontDialog *dialog = qobject_cast<QFontDialog *>(sender());
-    if(dialog){
+    if (dialog){
         QPushButton *button = dialog2button.value(dialog, NULL);
-        if(button)
+        if (button)
             button->setText(QString("%1[%2]").arg(font.family()).arg(font.pointSize()));
     }
 }
 
 void CardEditor::saveAvatar(const QRectF &rect){
     QString filename = QFileDialog::getSaveFileName(this,
-                                                    tr("Select a avatar file"),
-                                                    QString(),
-                                                    tr("Image file (*.png *.jpg *.bmp)"));
+        tr("Select a avatar file"),
+        QString(),
+        tr("Image file (*.png *.jpg *.bmp)"));
 
-    if(!filename.isEmpty()){
+    if (!filename.isEmpty()){
         QImage image(rect.width(), rect.height(), QImage::Format_ARGB32);
         QPainter painter(&image);
 
@@ -978,7 +1040,7 @@ void CardEditor::setMapping(QFontDialog *dialog, QPushButton *button){
     connect(button, SIGNAL(clicked()), dialog, SLOT(exec()));
 }
 
-QGroupBox *CardEditor::createTextItemBox(const QString &text, const QFont &font, int skip, BlackEdgeTextItem *item){
+QGroupBox *CardEditor::createTextItemBox(const QString &text, const QFont &font, int skip, BlackEdgeTextItem *item) {
     QGroupBox *box = new QGroupBox;
 
     QLineEdit *edit = new QLineEdit;
@@ -1013,7 +1075,7 @@ QGroupBox *CardEditor::createTextItemBox(const QString &text, const QFont &font,
     return box;
 }
 
-QLayout *CardEditor::createGeneralLayout(){
+QWidget *CardEditor::createPropertiesBox() {
     kingdom_ComboBox = new QComboBox;
     lord_checkbox = new QCheckBox(tr("Lord"));
     QStringList kingdom_names = Sanguosha->getKingdoms();
@@ -1028,7 +1090,7 @@ QLayout *CardEditor::createGeneralLayout(){
 
     QSpinBox *trans_hp_spinbox = new QSpinBox;
     trans_hp_spinbox->setRange(0, 6);
-    
+
     ratio_spinbox = new QSpinBox;
     ratio_spinbox->setRange(1, 1600);
     ratio_spinbox->setValue(100);
@@ -1050,7 +1112,7 @@ QLayout *CardEditor::createGeneralLayout(){
     layout->addRow(tr("Image ratio"), ratio_spinbox);
 
     QHBoxLayout *hlayout2 = new QHBoxLayout;
-    
+
     QPushButton *companion_font_button = new QPushButton;
     QFontDialog *companion_font_dialog = new QFontDialog(this);
 
@@ -1083,15 +1145,17 @@ QLayout *CardEditor::createGeneralLayout(){
     companion_edit->setText(Config.value("CardEditor/Companion").toString());
     show_companion_box->setChecked(Config.value("CardEditor/CompanionVisible", false).toBool());
     QString photo = Config.value("CardEditor/Photo").toString();
-    if(!photo.isEmpty())
+    if (!photo.isEmpty())
         card_scene->setGeneralPhoto(photo);
 
     setCardFrame();
 
-    return layout;
+    QGroupBox *box = new QGroupBox(tr("Properties"));
+    box->setLayout(layout);
+    return box;
 }
 
-QWidget *CardEditor::createSkillBox(){
+QWidget *CardEditor::createSkillBox() {
     QGroupBox *box = new QGroupBox(tr("Skill"));
 
     QFormLayout *layout = new QFormLayout;
@@ -1124,12 +1188,15 @@ QWidget *CardEditor::createSkillBox(){
     QComboBox *suit_ComboBox = new QComboBox;
     const Card::Suit *suits = Card::AllSuits;
     int i;
-    for(i=0; i<4; i++){
+    for (i = 0; i < 4; i++){
         QString suit_name = Card::Suit2String(suits[i]);
         QIcon suit_icon(QString("image/system/suit/%1.png").arg(suit_name));
         suit_ComboBox->addItem(suit_icon, Sanguosha->translate(suit_name), suit_name);
     }
     layout->addRow(tr("Insert suit"), suit_ComboBox);
+    //temp solution
+    suit_ComboBox->setEnabled(false);
+    suit_ComboBox->setToolTip(tr("<font color=%1>This function cannot be used now, we will try to fix it.</font>").arg(Config.SkillDescriptionInToolTipColor.name()));
 
     connect(suit_ComboBox, SIGNAL(activated(int)), skill_box, SLOT(insertSuit(int)));
 
@@ -1143,9 +1210,6 @@ QWidget *CardEditor::createSkillBox(){
     layout->addRow(tr("Insert bold text"), bold_ComboBox);
 
     connect(bold_ComboBox, SIGNAL(activated(QString)), skill_box, SLOT(insertBoldText(QString)));
-    //temp solution
-    bold_ComboBox->setEnabled(false);
-    bold_ComboBox->setToolTip(tr("<font color=%1>This function cannot be used now, we will try to fix it.</font>").arg(Config.SkillDescriptionInToolTipColor.name()));
 
     box->setLayout(layout);
     return box;
@@ -1161,23 +1225,23 @@ QWidget *CardEditor::createLeft(){
     QVBoxLayout *layout = new QVBoxLayout;
     QGroupBox *box = createTextItemBox(Config.value("CardEditor/TitleText", tr("Title")).toString(),
 #ifdef Q_OS_LINUX
-                                       Config.value("CardEditor/TitleFont", QFont("DroidSansFallback", 20)).value<QFont>(),
+        Config.value("CardEditor/TitleFont", QFont("DroidSansFallback", 20)).value<QFont>(),
 #else
-                                       Config.value("CardEditor/TitleFont", QFont("Times", 20)).value<QFont>(),
+        Config.value("CardEditor/TitleFont", QFont("Times", 20)).value<QFont>(),
 #endif
-                                       Config.value("CardEditor/TitleSkip", 0).toInt(),
-                                       card_scene->getTitleItem());
+        Config.value("CardEditor/TitleSkip", 0).toInt(),
+        card_scene->getTitleItem());
     box->setTitle(tr("Title"));
     layout->addWidget(box);
 
     box = createTextItemBox(Config.value("CardEditor/NameText", tr("Name")).toString(),
 #ifdef Q_OS_LINUX
-                            Config.value("CardEditor/NameFont", QFont("DroidSansFallback", 36)).value<QFont>(),
+        Config.value("CardEditor/NameFont", QFont("DroidSansFallback", 36)).value<QFont>(),
 #else
-                            Config.value("CardEditor/NameFont", QFont("Times", 36)).value<QFont>(),
+        Config.value("CardEditor/NameFont", QFont("Times", 36)).value<QFont>(),
 #endif
-                            Config.value("CardEditor/NameSkip", 0).toInt(),
-                            card_scene->getNameItem());
+        Config.value("CardEditor/NameSkip", 0).toInt(),
+        card_scene->getNameItem());
 
     QLineEdit *name_edit = box->findChild<QLineEdit *>("name");
     connect(name_edit, SIGNAL(textChanged(QString)), card_scene, SLOT(setAvatarNameBox(QString)));
@@ -1185,8 +1249,17 @@ QWidget *CardEditor::createLeft(){
     box->setTitle(tr("Name"));
     layout->addWidget(box);
 
-    layout->addLayout(createGeneralLayout());
+    QWidget *widget = new QWidget;
+    widget->setLayout(layout);
+    return widget;
+}
+
+QWidget *CardEditor::createMiddle()
+{
+    QVBoxLayout *layout = new QVBoxLayout;
+
     layout->addWidget(createSkillBox());
+    layout->addWidget(createPropertiesBox());
 
     QWidget *widget = new QWidget;
     widget->setLayout(layout);
@@ -1200,12 +1273,12 @@ void CardEditor::setCardFrame(){
 
 void CardEditor::import(){
     QString filename = QFileDialog::getOpenFileName(this,
-                                                    tr("Select a photo file ..."),
-                                                    Config.value("CardEditor/ImportPath").toString(),
-                                                    tr("Images (*.png *.bmp *.jpg)")
-                                                    );
+        tr("Select a photo file ..."),
+        Config.value("CardEditor/ImportPath").toString(),
+        tr("Images (*.png *.bmp *.jpg)")
+        );
 
-    if(!filename.isEmpty()){
+    if (!filename.isEmpty()){
         card_scene->setGeneralPhoto(filename);
         Config.setValue("CardEditor/ImportPath", QFileInfo(filename).absolutePath());
     }
@@ -1213,19 +1286,17 @@ void CardEditor::import(){
 
 void CardEditor::saveImage(){
     QString filename = QFileDialog::getSaveFileName(this,
-                                                    tr("Select a photo file ..."),
-                                                    Config.value("CardEditor/ExportPath").toString(),
-                                                    tr("Images (*.png *.bmp *.jpg)")
-                                                    );
+        tr("Select a photo file ..."),
+        Config.value("CardEditor/ExportPath").toString(),
+        tr("Images (*.png *.bmp *.jpg)")
+        );
 
-    if(!filename.isEmpty()){
+    if (!filename.isEmpty()){
         card_scene->clearFocus();
         QPixmap::grabWidget(card_scene->views().first()).save(filename);
         Config.setValue("CardEditor/ExportPath", QFileInfo(filename).absolutePath());
     }
 }
-
-
 
 void CardEditor::copyPhoto(){
     card_scene->clearFocus();
@@ -1236,29 +1307,20 @@ void CardEditor::copyPhoto(){
 
 void CardEditor::addSkill(){
     QString text = QInputDialog::getText(this, tr("Add skill"), tr("Please input the skill title:"));
-    if(!text.isEmpty())
+    if (!text.isEmpty())
         card_scene->getSkillBox()->addSkill(text);
 }
 
 void CardEditor::editSkill(){
     SkillTitle *to_edit = card_scene->getSkillBox()->getFocusTitle();
-    if(to_edit == NULL)
+    if (to_edit == NULL)
         return;
 
     QString text = QInputDialog::getText(this,
-                                         tr("Edit skill title"),
-                                         tr("Please input the skill title:"),
-                                         QLineEdit::Normal,
-                                         to_edit->text());
-    if(!text.isEmpty())
+        tr("Edit skill title"),
+        tr("Please input the skill title:"),
+        QLineEdit::Normal,
+        to_edit->text());
+    if (!text.isEmpty())
         to_edit->setText(text);
-}
-
-void MainWindow::on_actionCard_editor_triggered()
-{
-    static CardEditor *editor;
-    if(editor == NULL)
-        editor = new CardEditor(this);
-
-    editor->show();
 }

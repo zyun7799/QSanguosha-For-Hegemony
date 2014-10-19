@@ -1,16 +1,30 @@
-#ifndef _MAIN_WINDOW_H
-#define _MAIN_WINDOW_H
+/********************************************************************
+    Copyright (c) 2013-2014 - QSanguosha-Rara
 
-#include "engine.h"
-#include "connectiondialog.h"
-#include "configdialog.h"
-#include "UpdateCheckerThread.h"
+    This file is part of QSanguosha-Hegemony.
+
+    This game is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License as
+    published by the Free Software Foundation; either version 3.0
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    See the LICENSE file for more details.
+
+    QSanguosha-Rara
+    *********************************************************************/
+
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QSettings>
-#include <QComboBox>
-#include <QCheckBox>
-#include <QSpinBox>
+#include <QDialog>
+
+#include "version.h"
 
 namespace Ui {
     class MainWindow;
@@ -21,11 +35,12 @@ class QGraphicsScene;
 class QSystemTrayIcon;
 class Server;
 class QTextEdit;
-class QToolButton;
-class QGroupBox;
-class RoomItem;
+class QNetworkReply;
+class ConnectionDialog;
+class ConfigDialog;
+class Window;
 
-class BroadcastBox: public QDialog {
+class BroadcastBox : public QDialog {
     Q_OBJECT
 
 public:
@@ -44,13 +59,34 @@ public:
     static void preload();
 };
 
-class MainWindow: public QMainWindow {
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
-    void setBackgroundBrush(bool center_as_origin);
+    void fitBackgroundBrush();
+
+#ifdef Q_OS_WIN
+    virtual void mousePressEvent(QMouseEvent *event);
+    virtual void mouseReleaseEvent(QMouseEvent *event);
+    virtual void mouseDoubleClickEvent(QMouseEvent *event);
+    virtual void mouseMoveEvent(QMouseEvent *event);
+#endif
+
+    virtual void changeEvent(QEvent *event);
+    virtual void resizeEvent(QResizeEvent *event);
+    void repaintButtons();
+
+    bool isLeftPressDown;
+    QPoint movePosition;
+
+    static const int S_PADDING = 4;
+    static const int S_CORNER_SIZE = 5;
+    enum Direction { Up, Down, Left, Right, LeftTop, LeftBottom, RightTop, RightBottom, None = -1 };
+
+    bool isZoomReady;
+    Direction direction;
 
 protected:
     virtual void closeEvent(QCloseEvent *event);
@@ -63,9 +99,22 @@ private:
     ConfigDialog *config_dialog;
     QSystemTrayIcon *systray;
     Server *server;
-    UpdateInfoStruct update_info;
+    Window *about_window;
+    UpdateInfoStruct updateInfomation;
+
+    QPushButton *minButton;
+    QPushButton *maxButton;
+    QPushButton *normalButton;
+    QPushButton *closeButton;
+    QPushButton *menu;
+
+    QNetworkReply *versionInfomationReply;
+    QNetworkReply *changeLogReply;
 
     void restoreFromConfig();
+    void region(const QPoint &cursorGlobalPoint);
+    void fetchUpdateInformation();
+    void roundCorners();
 
 public slots:
     void startConnection();
@@ -75,7 +124,6 @@ private slots:
     void on_actionAbout_Lua_triggered();
     void on_actionAbout_fmod_triggered();
     void on_actionReplay_file_convert_triggered();
-    void on_actionPackaging_triggered();
     void on_actionPC_Console_Start_triggered();
     void on_actionRecord_analysis_triggered();
     void on_actionCard_editor_triggered();
@@ -83,7 +131,6 @@ private slots:
     void on_actionBroadcast_triggered();
     void on_actionRule_Summary_triggered();
     void on_actionMinimize_to_system_tray_triggered();
-    void on_actionShow_Hide_Menu_triggered();
     void on_actionFullscreen_triggered();
     void on_actionReplay_triggered();
     void on_actionAbout_triggered();
@@ -103,14 +150,14 @@ private slots:
     void gotoStartScene();
     void startGameInAnotherInstance();
     void changeBackground();
-    void changeTableBg();
     void on_actionManage_Ban_IP_triggered();
 
-    void storeKeyAndValue(const QString &key, const QString &value);
+    void onVersionInfomationGotten();
+    void onChangeLogGotten();
 
 signals:
     void about_to_close();
 };
 
-#endif
+#endif //MAINWINDOW_H
 

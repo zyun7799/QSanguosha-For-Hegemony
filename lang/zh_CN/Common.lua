@@ -83,6 +83,7 @@ CommonTranslationTable = {
 	["female"] = "女性",
 	["discardPile"] = "弃牌堆",
 	["drawPileTop"] = "牌堆顶",
+	["drawPileBottom"] = "牌堆底",
 
 	["use upon"] = "对",
 	["yourself"] = "你",
@@ -101,7 +102,8 @@ CommonTranslationTable = {
 	["armor"] = "防具",
 	["defensive_horse"] = "+1坐骑",
 	["offensive_horse"] = "-1坐骑",
-	
+	["treasure"] = "宝物",
+
 	["luck_card"] = "手气卡",
 
 	["wei"] = "魏",
@@ -110,6 +112,7 @@ CommonTranslationTable = {
 	["qun"] = "群",
 	["careerist"] = "野心家",
 	["god"] = "神",
+	["default"] = "默认",
 
 	["#Murder"] = "%to【%arg】 阵亡，伤害来源为 %from",
 	["#Suicide"] = "%to【%arg】 自杀",
@@ -131,7 +134,7 @@ CommonTranslationTable = {
 	["#HegNullificationSelection"] = "%from 选择了该【<font color=\"yellow\"><b>无懈可击·国</b></font>】为 %arg" ,
 	["hegnul_single"] = "对单一角色生效" ,
 	["hegnul_all"] = "对该势力的全体剩余角色生效" ,
-	["#SkillAvoid"] = "%from 的“%arg”被触发，不能被选择为此 【%arg2】 的目标",
+	["#SkillAvoid"] = "受到“%arg”的影响，%from 不能被选择为此【%arg2】的目标",
 	["#Transfigure"] = "%from 变身为 %arg",
 	["#TransfigureDual"] = "%from 的 %arg2 变身为 %arg",
 	["#AcquireSkill"] = "%from 获得了技能“%arg”",
@@ -157,6 +160,8 @@ CommonTranslationTable = {
 	["$JileiShowAllCards"] = "%from 展示了不能弃置的手牌 %card",
 	["$PutCard"] = "%from 的 %card 被置于牌堆顶",
 	["#PutCard"] = "%from 的 %arg 张牌被置于牌堆顶",
+	["$PutCardToDrawPileBottom"] = "%from 的 %card 被置于牌堆底",
+	["#PutCardToDrawPileBottom"] = "%from 的 %arg 张牌被置于牌堆底",
 	["normal_nature"] = "无属性",
 	["fire_nature"] = "火焰属性",
 	["thunder_nature"] = "雷电属性",
@@ -234,8 +239,15 @@ CommonTranslationTable = {
 	["SEAT(8)"] = "八号位",
 	["SEAT(9)"] = "九号位",
 	["SEAT(10)"] = "十号位",
-	
+
+	["HorseCorrect"] = "坐骑",
+
 	["#DanlaoAvoid"] = "“%arg2”效果被触发，【%arg】 对 %from 无效",
+
+	["custom_scenario"] = "自定义场景",
+	
+	["Player"] = "玩家",
+	["AI"] = "机器人"
 }
 
 return CommonTranslationTable

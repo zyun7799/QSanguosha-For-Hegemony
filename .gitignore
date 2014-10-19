@@ -8,7 +8,6 @@ config.ini
 swig/sanguosha_wrap.cxx
 records/*
 .DS_Store
-font/font.ttf
 QSanguosha.pro.user*
 QSanguosha.exe
 QSanguosha
@@ -40,6 +39,7 @@ card_intention.txt
 *.sh
 /Qt*4.dll
 /dmp/*.dmp
+/dmp/*/
 *Thumbs.db
 *.tmp
 libgcc_s_dw2-1.dll
@@ -47,8 +47,8 @@ libstdc++-6.dll
 libwinpthread-1.dll
 *.orig
 Qt*.pdb
-msvc[pr]1[10]0.dll
-msvc[pr]1[10]0d.dll
+msvc[pr]1[210]0.dll
+msvc[pr]1[210]0d.dll
 fmod.log
 *.vspscc
 dbghelp.dll
@@ -61,3 +61,11 @@ icu*.dll
 /Qt5*.dll
 libEGL.dll
 libGLESv2.dll
+/platforms
+/imageformats
+/QSanguosha.app/
+*.pd_
+*.lastcodeanalysissucceeded
+/etc/customScenes/custom_scenario.txt
+/etc
+OGLdpf.log
