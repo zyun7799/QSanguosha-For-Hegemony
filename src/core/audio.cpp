@@ -21,6 +21,8 @@
 #include "audio.h"
 #include "settings.h"
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
+
 #include <QCache>
 #include <fmod.hpp>
 
@@ -146,3 +148,116 @@ QString Audio::getVersion() {
         .arg((version & 0xFF), 2, 16, QChar('0'));
 }
 
+#else
+
+
+#include <QCache>
+#include <QMediaPlayer>
+#include <QMediaPlaylist>
+
+class Sound;
+
+static QCache<QString, Sound> SoundCache;
+static QMediaPlayer *BGM;
+static QMediaPlaylist *BGMList;
+
+class Sound {
+public:
+    Sound(const QString &filename) : m_mediaPlayer(NULL) {
+        m_mediaPlayer = new QMediaPlayer;
+        m_mediaPlayer->setMedia(QUrl::fromLocalFile(filename));
+        m_mediaPlayer->setVolume(Config.EffectVolume * 100);
+    }
+
+    ~Sound() {
+        if (m_mediaPlayer)
+            delete m_mediaPlayer;
+    }
+
+    void play(bool doubleVolume = false) {
+        if (m_mediaPlayer) {
+            if (doubleVolume)
+                m_mediaPlayer->setVolume(Config.EffectVolume * 200);
+
+            m_mediaPlayer->play();
+        }
+    }
+
+    bool isPlaying() const{
+        if (m_mediaPlayer == NULL)
+            return false;
+
+        return m_mediaPlayer->state() == QMediaPlayer::PlayingState;
+    }
+
+private:
+    QMediaPlayer *m_mediaPlayer;
+};
+
+void Audio::init() {
+
+}
+
+void Audio::quit() {
+    SoundCache.clear();
+    if (BGM != NULL) {
+        delete BGM;
+        delete BGMList;
+    }
+}
+
+void Audio::play(const QString &filename) {
+    Sound *sound = SoundCache[filename];
+    if (sound == NULL) {
+        sound = new Sound(filename);
+        SoundCache.insert(filename, sound);
+    }
+    else if (sound->isPlaying()) {
+        return;
+    }
+
+    sound->play();
+}
+
+void Audio::playAudioOfMoxuan()
+{
+    Sound *sound = new Sound("audio/system/moxuan.ogg");
+    sound->play(true);
+}
+
+void Audio::stop() {
+    SoundCache.clear();
+    if (BGM != NULL)
+        BGM->stop();
+}
+
+void Audio::playBGM(const QString &filename) {
+    if (BGM != NULL) {
+        delete BGM;
+        delete BGMList;
+    }
+
+    BGM = new QMediaPlayer;
+    BGMList = new QMediaPlaylist;
+    BGMList->addMedia(QUrl::fromLocalFile(filename));
+    BGMList->setPlaybackMode(QMediaPlaylist::Loop);
+    BGM->setPlaylist(BGMList);
+
+    BGM->play();
+}
+
+void Audio::setBGMVolume(float volume) {
+    if (BGM != NULL)
+        BGM->setVolume(volume * 100);
+}
+
+void Audio::stopBGM() {
+    if (BGM != NULL)
+        BGM->stop();
+}
+
+QString Audio::getVersion() {
+    return QObject::tr("This version doesn't use fmod anymore.");
+}
+
+#endif
