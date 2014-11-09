@@ -126,14 +126,24 @@ void EquipCard::onInstall(ServerPlayer *player) const{
         } else if (skill->inherits("TriggerSkill")) {
             const TriggerSkill *trigger_skill = qobject_cast<const TriggerSkill *>(skill);
             room->getThread()->addTriggerSkill(trigger_skill);
+            if (trigger_skill->getViewAsSkill())
+                room->attachSkillToPlayer(player, this->objectName());
         }
     }
 }
 
 void EquipCard::onUninstall(ServerPlayer *player) const{
     Room *room = player->getRoom();
-    if (Sanguosha->getSkill(this) && Sanguosha->getSkill(this)->inherits("ViewAsSkill"))
-        room->detachSkillFromPlayer(player, this->objectName(), true);
+    const Skill *skill = Sanguosha->getSkill(this);
+    if (skill) {
+        if (skill->inherits("ViewAsSkill")) {
+            room->detachSkillFromPlayer(player, this->objectName(), true);
+        } else if (skill->inherits("TriggerSkill")) {
+            const TriggerSkill *trigger_skill = qobject_cast<const TriggerSkill *>(skill);
+            if (trigger_skill->getViewAsSkill())
+                room->detachSkillFromPlayer(player, this->objectName(), true);
+        }
+    }
 }
 
 QString GlobalEffect::getSubtype() const{
@@ -281,7 +291,9 @@ void DelayedTrick::onUse(Room *room, const CardUseStruct &card_use) const{
 }
 
 void DelayedTrick::use(Room *room, ServerPlayer *source, QList<ServerPlayer *> &targets) const{
-    if (targets.isEmpty()) {
+    QStringList nullified_list = room->getTag("CardUseNullifiedList").toStringList();
+    bool all_nullified = nullified_list.contains("_ALL_TARGETS");
+    if (all_nullified || targets.isEmpty()) {
         if (movable) {
             onNullified(source);
             if (room->getCardOwner(getEffectiveId()) != source) return;
@@ -436,13 +448,13 @@ Horse::Horse(Suit suit, int number, int correct)
 int Horse::getCorrect() const{
     return correct;
 }
-
+/*
 void Horse::onInstall(ServerPlayer *) const{
 }
 
 void Horse::onUninstall(ServerPlayer *) const{
 }
-
+*/
 QString Horse::getCommonEffectName() const{
     return "horse";
 }

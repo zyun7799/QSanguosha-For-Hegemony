@@ -203,6 +203,11 @@ bool ServerPlayer::askForSkillInvoke(const QString &skill_name, const QVariant &
     return room->askForSkillInvoke(this, skill_name, data);
 }
 
+bool ServerPlayer::askForSkillInvoke(const Skill *skill, const QVariant &data) {
+    Q_ASSERT(skill != NULL);
+    return room->askForSkillInvoke(this, skill->objectName(), data);
+}
+
 QList<int> ServerPlayer::forceToDiscard(int discard_num, bool include_equip, bool is_discard) {
     QList<int> to_discard;
 
@@ -1375,7 +1380,7 @@ void ServerPlayer::showGeneral(bool head_general, bool trigger_event, bool sendL
             room->notifyProperty(p, this, "deputy_skin_id");
 
         if (!hasShownGeneral1()) {
-            QString kingdom = getGeneral2()->getKingdom();
+            QString kingdom = room->getMode() == "custom_scenario" ? getKingdom() : getGeneral2()->getKingdom();
             room->setPlayerProperty(this, "kingdom", kingdom);
 
             QString role = HegemonyMode::GetMappedRole(kingdom);
@@ -1752,13 +1757,11 @@ void ServerPlayer::summonFriends(const ArrayType type) {
     switch (type) {
     case Siege: {
         if (isFriendWith(getNextAlive()) && isFriendWith(getLastAlive())) return;
-        QString prompt = "SiegeSummon";
         bool failed = true;
         if (!isFriendWith(getNextAlive())) {
             ServerPlayer *target = qobject_cast<ServerPlayer *>(getNextAlive(2));
             if (!target->hasShownOneGeneral()) {
-                if (!target->willBeFriendWith(this))
-                    prompt += "!";
+                QString prompt = target->willBeFriendWith(this) ? "SiegeSummon" : "SiegeSummon!";
                 bool success = room->askForSkillInvoke(target, prompt);
                 LogMessage log;
                 log.type = "#SummonResult";
@@ -1774,8 +1777,7 @@ void ServerPlayer::summonFriends(const ArrayType type) {
         if (!isFriendWith(getLastAlive())) {
             ServerPlayer *target = qobject_cast<ServerPlayer *>(getLastAlive(2));
             if (!target->hasShownOneGeneral()) {
-                if (!target->willBeFriendWith(this))
-                    prompt += "!";
+                QString prompt = target->willBeFriendWith(this) ? "SiegeSummon" : "SiegeSummon!";
                 bool success = room->askForSkillInvoke(target, prompt);
                 LogMessage log;
                 log.type = "#SummonResult";
@@ -1800,10 +1802,7 @@ void ServerPlayer::summonFriends(const ArrayType type) {
             if (isFriendWith(target))
                 continue;
             else if (!target->hasShownOneGeneral()) {
-                QString prompt = "FormationSummon";
-                if (!target->willBeFriendWith(this))
-                    prompt += "!";
-
+                QString prompt = target->willBeFriendWith(this) ? "FormationSummon" : "FormationSummon!";
                 bool success = room->askForSkillInvoke(target, prompt);
                 LogMessage log;
                 log.type = "#SummonResult";
@@ -1833,10 +1832,7 @@ void ServerPlayer::summonFriends(const ArrayType type) {
                 continue;
             else {
                 if (!target->hasShownOneGeneral()) {
-                    QString prompt = "FormationSummon";
-                    if (!target->willBeFriendWith(this))
-                        prompt += "!";
-
+                    QString prompt = target->willBeFriendWith(this) ? "FormationSummon" : "FormationSummon!";
                     bool success = room->askForSkillInvoke(target, prompt);
                     LogMessage log;
                     log.type = "#SummonResult";
@@ -1859,7 +1855,7 @@ void ServerPlayer::summonFriends(const ArrayType type) {
     }
 }
 
-QHash<QString, QStringList> ServerPlayer::getBigAndSmallKingdoms(const QString &reason, MaxCardsType::MaxCardsCount _type) const
+QStringList ServerPlayer::getBigKingdoms(const QString &reason, MaxCardsType::MaxCardsCount _type) const
 {
     ServerPlayer *jade_seal_owner = NULL;
     foreach (ServerPlayer *p, room->getAlivePlayers()) {
@@ -1883,43 +1879,36 @@ QHash<QString, QStringList> ServerPlayer::getBigAndSmallKingdoms(const QString &
             break;
         }
     }
-    QHash<QString, QStringList> big_n_small;
-    big_n_small.insert("big", QStringList());
-    big_n_small.insert("small", QStringList());
+    QStringList big_kingdoms;
     foreach (QString key, kingdom_map.keys()) {
-        if (kingdom_map[key] == 0)
+        if (kingdom_map[key] <= 1)
             continue;
-        if (big_n_small["big"].isEmpty()) {
-            big_n_small["big"] << key;
+        if (big_kingdoms.isEmpty()) {
+            big_kingdoms << key;
             continue;
         }
-        if (kingdom_map[key] == kingdom_map[big_n_small["big"].first()]) {
-            big_n_small["big"] << key;
-        } else if (kingdom_map[key] > kingdom_map[big_n_small["big"].first()]) {
-            big_n_small["small"] << big_n_small["big"];
-            big_n_small["big"].clear();
-            big_n_small["big"] << key;
-        } else if (kingdom_map[key] < kingdom_map[big_n_small["big"].first()]) {
-            big_n_small["small"] << key;
+        if (kingdom_map[key] == kingdom_map[big_kingdoms.first()]) {
+            big_kingdoms << key;
+        } else if (kingdom_map[key] > kingdom_map[big_kingdoms.first()]) {
+            big_kingdoms.clear();
+            big_kingdoms << key;
         }
     }
     if (jade_seal_owner != NULL) {
         if (jade_seal_owner->getRole() == "careerist") {
-            big_n_small["small"] << big_n_small["big"];
-            big_n_small["big"].clear();
-            big_n_small["big"] << jade_seal_owner->objectName(); // record player's objectName who has JadeSeal.
+            big_kingdoms.clear();
+            big_kingdoms << jade_seal_owner->objectName(); // record player's objectName who has JadeSeal.
         } else { // has shown one general but isn't careerist
             QString kingdom = jade_seal_owner->getKingdom();
-            big_n_small["small"] << big_n_small["big"];
-            big_n_small["big"].clear();
-            big_n_small["small"].removeOne(kingdom);
-            big_n_small["big"] << kingdom;
+            big_kingdoms.clear();
+            big_kingdoms << kingdom;
         }
     }
-    return big_n_small;
+    return big_kingdoms;
 }
 
-void ServerPlayer::changeToLord() {
+void ServerPlayer::changeToLord()
+{
     foreach(QString skill_name, head_skills.keys()) {
         Player::loseSkill(skill_name);
         JsonArray arg_loseskill;
@@ -1976,7 +1965,21 @@ void ServerPlayer::changeToLord() {
             room->doNotify(this, S_COMMAND_SET_MARK, arg);
         }
     }
+}
 
+void ServerPlayer::slashSettlementFinished(const Card *slash)
+{
+    removeQinggangTag(slash);
+
+    QStringList blade_use = property("blade_use").toStringList();
+
+    if (blade_use.contains(slash->toString())) {
+        blade_use.removeOne(slash->toString());
+        room->setPlayerProperty(this, "blade_use", blade_use);
+
+        if (blade_use.isEmpty())
+            room->removePlayerDisableShow(this, "Blade");
+    }
 }
 
 #ifndef QT_NO_DEBUG

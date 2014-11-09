@@ -60,7 +60,7 @@ sgs.ai_view_as.jijiu = function(card, player, card_place)
 	local suit = card:getSuitString()
 	local number = card:getNumberString()
 	local card_id = card:getEffectiveId()
-	if card_place ~= sgs.Player_PlaceSpecial and card:isRed() and player:getPhase() == sgs.Player_NotActive
+	if (card_place ~= sgs.Player_PlaceSpecial or player:getPile("wooden_ox"):contains(card_id)) and card:isRed() and player:getPhase() == sgs.Player_NotActive
 		and not player:hasFlag("Global_PreventPeach") and (player:getMark("@qianxi_red") <= 0 or card:isEquipped()) then
 		return ("peach:jijiu[%s:%s]=%d&jijiu"):format(suit, number, card_id)
 	end
@@ -97,6 +97,7 @@ end
 sgs.ai_skill_cardask["@multi-jink"] = sgs.ai_skill_cardask["@multi-jink-start"]
 
 sgs.ai_skill_invoke.wushuang = function(self, data)
+	if not self:willShowForAttack() then return false end 
 	local use = data:toCardUse()
 	if use.card then
 		if use.card:isKindOf("Duel") then
@@ -137,7 +138,7 @@ function SmartAI:getLijianCard()
 		else
 			for _, acard in ipairs(cards) do
 				if (acard:isKindOf("BasicCard") or acard:isKindOf("EquipCard") or acard:isKindOf("AmazingGrace"))
-					and not acard:isKindOf("Peach") then
+					and not acard:isKindOf("Peach") and not acard:isKindOf("JadeSeal") then
 					card_id = acard:getEffectiveId()
 					break
 				end
@@ -157,7 +158,7 @@ function SmartAI:getLijianCard()
 		else
 			for _, acard in ipairs(cards) do
 				if (acard:isKindOf("BasicCard") or acard:isKindOf("EquipCard") or acard:isKindOf("AmazingGrace"))
-				  and not acard:isKindOf("Peach") then
+				  and not acard:isKindOf("Peach") and not acard:isKindOf("JadeSeal") then
 					card_id = acard:getEffectiveId()
 					break
 				end
@@ -331,18 +332,19 @@ luanji_skill.getTurnUseCard = function(self)
 		self:sortByKeepValue(cards)
 		local useAll = false
 		for _, enemy in ipairs(self.enemies) do
-			if enemy:getHp() == 1 and not enemy:hasArmorEffect("Vine")  then
-			useAll = true
+			if enemy:getHp() == 1 and not enemy:hasArmorEffect("Vine") and not self:hasEightDiagramEffect(enemy) and self:damageIsEffective(enemy, nil, self.player)
+				and self:isWeak(enemy) and getCardsNum("Jink", enemy, self.player) + getCardsNum("Peach", enemy, self.player) + getCardsNum("Analeptic", enemy, self.player) == 0 then
+				useAll = true
 			end
 		end
 		for _, fcard in ipairs(cards) do
-			local fvalueCard = (isCard("Peach", fcard, self.player) or isCard("ExNihilo", fcard, self.player) or isCard("ArcheryAttack", fcard, self.player))
+			local fvalueCard = (isCard("Peach", fcard, self.player) or isCard("ExNihilo", fcard, self.player) or isCard("ArcheryAttack", fcard, self.player) or isCard("JadeSeal", fcard, self.player))
 			if useAll then fvalueCard = isCard("ArcheryAttack", fcard, self.player) end
 			if not fvalueCard then
 				first_card = fcard
 				first_found = true
 				for _, scard in ipairs(cards) do
-					local svalueCard = (isCard("Peach", scard, self.player) or isCard("ExNihilo", scard, self.player) or isCard("ArcheryAttack", scard, self.player))
+					local svalueCard = (isCard("Peach", scard, self.player) or isCard("ExNihilo", scard, self.player) or isCard("ArcheryAttack", scard, self.player) or isCard("JadeSeal", scard, self.player))
 					if useAll then svalueCard = (isCard("ArcheryAttack", scard, self.player)) end
 					if first_card ~= scard and scard:getSuit() == first_card:getSuit()
 						and not svalueCard then
@@ -389,8 +391,6 @@ sgs.ai_skill_invoke.shuangxiong = function(self, data)
 	self:useTrickCard(duel, dummy_use)
 
 	if (self.player:getHandcardNum() >= 3 and dummy_use.card) then
-		self.player:setFlags("ai_shuangxiong")
-		sgs.ai_use_priority.Duel = 9.1
 		return true
 	end
 	return false
@@ -549,6 +549,22 @@ sgs.ai_skill_cardask["@luanwu-slash"] = function(self)
 end
 
 sgs.ai_skill_invoke.weimu = function(self, data)
+	if not self:willShowForDefence() then return false end 
+	local use = data:toCardUse()
+	if use.card:isKindOf("ImperialOrder") then
+		if sgs.GetConfig("RewardTheFirstShowingPlayer", true) then
+			local reward = true
+			for _, p in sgs.qlist(self.room:getAlivePlayers()) do
+				if p:hasShownOneGeneral() then
+					reward = false
+					break
+				end
+			end
+			if reward then return true end
+		else
+			return false
+		end
+	end
 	return true
 end
 
@@ -557,6 +573,7 @@ sgs.ai_skill_invoke.wansha = function(self, data)
 end
 
 sgs.ai_skill_invoke.mengjin = function(self, data)
+	if not self:willShowForAttack() then return false end
 	local effect = data:toSlashEffect()
 	if self:isEnemy(effect.to) then
 		if self:doNotDiscard(effect.to) then
@@ -572,6 +589,9 @@ end
 sgs.ai_skill_cardask["@guidao-card"]=function(self, data)
 	local judge = data:toJudge()
 	local all_cards = self.player:getCards("he")
+	for _, id in sgs.qlist(self.player:getPile("wooden_ox")) do
+		all_cards:prepend(sgs.Sanguosha:getCard(id))
+	end
 	if all_cards:isEmpty() then return "." end
 
 	local needTokeep = judge.card:getSuit() ~= sgs.Card_Spade
@@ -799,8 +819,8 @@ sgs.ai_skill_askforyiji.lirang = function(self, card_ids)
 	end
 	local id = card_ids[1]
 
-	local card, friend = self:getCardNeedPlayer(cards)
-	if card and friend and table.contains(self.friends_noself, friend) then return friend, card:getId() end
+	local card, friend = self:getCardNeedPlayer(cards, self.friends_noself)
+	if card and friend then return friend, card:getId() end
 	if #self.friends_noself > 0 then
 		self:sort(self.friends_noself, "handcard")
 		for _, afriend in ipairs(self.friends_noself) do

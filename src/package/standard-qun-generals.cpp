@@ -115,7 +115,7 @@ public:
     }
 
     virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data, ServerPlayer *) const{
-        bool invoke = player->hasShownSkill(this) ? true : room->askForSkillInvoke(player, objectName(), data);
+        bool invoke = player->hasShownSkill(this) ? true : player->askForSkillInvoke(this, data);
         if (invoke){
             room->broadcastSkillInvoke(objectName(), player);
             return true;
@@ -262,7 +262,7 @@ public:
     }
 
     virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const{
-        if (player->askForSkillInvoke(objectName())){
+        if (player->askForSkillInvoke(this)){
             room->broadcastSkillInvoke(objectName(), player);
             return true;
         }
@@ -370,7 +370,7 @@ public:
     }
 
     virtual bool cost(TriggerEvent, Room *room, ServerPlayer *shuangxiong, QVariant &, ServerPlayer *) const{
-        if (shuangxiong->askForSkillInvoke(objectName())){
+        if (shuangxiong->askForSkillInvoke(this)){
             room->broadcastSkillInvoke(objectName(), 1, shuangxiong);
             return true;
         }
@@ -450,7 +450,7 @@ public:
     }
 
     virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data, ServerPlayer *) const{
-        if (player->hasShownSkill(this) || player->askForSkillInvoke(objectName(), data)){
+        if (player->hasShownSkill(this) || player->askForSkillInvoke(this, data)){
             room->broadcastSkillInvoke(objectName(), player);
             return true;
         }
@@ -552,8 +552,8 @@ public:
         return QStringList(objectName());
     }
 
-    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const{
-        if (player->hasShownSkill(this) || player->askForSkillInvoke(objectName())){
+    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data, ServerPlayer *) const{
+        if (player->hasShownSkill(this) || player->askForSkillInvoke(this, data)){
             room->broadcastSkillInvoke(objectName(), player);
             return true;
         }
@@ -563,21 +563,9 @@ public:
     virtual bool effect(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data, ServerPlayer *) const{
         CardUseStruct use = data.value<CardUseStruct>();
         room->notifySkillInvoked(player, objectName());
-        LogMessage log;
-        if (use.from) {
-            log.type = "$CancelTarget";
-            log.from = use.from;
-        }
-        else {
-            log.type = "$CancelTargetNoUser";
-        }
-        log.to << player;
-        log.arg = use.card->objectName();
-        room->sendLog(log);
+        
+        room->cancelTarget(use, player); // Room::cancelTarget(use, player);
 
-        room->setEmotion(player, "cancel");
-
-        use.to.removeOne(player);
         data = QVariant::fromValue(use);
         return false;
     }
@@ -598,7 +586,7 @@ public:
     }
 
     virtual bool cost(TriggerEvent, Room *room, ServerPlayer *pangde, QVariant &data, ServerPlayer *) const{
-        if (pangde->askForSkillInvoke(objectName(), data)){
+        if (pangde->askForSkillInvoke(this, data)){
             room->doAnimate(QSanProtocol::S_ANIMATE_INDICATE, pangde->objectName(), data.value<SlashEffectStruct>().to->objectName());
             room->broadcastSkillInvoke(objectName(), pangde);
             return true;
@@ -751,12 +739,11 @@ public:
 
         if (caiwenji != NULL){
             caiwenji->tag["beige_data"] = data;
-            bool invoke = room->askForDiscard(caiwenji, objectName(), 1, 1, true, true, "@beige");
+            bool invoke = room->askForDiscard(caiwenji, objectName(), 1, 1, true, true, "@beige", true);
             caiwenji->tag.remove("beige_data");
 
             if (invoke){
                 room->doAnimate(QSanProtocol::S_ANIMATE_INDICATE, caiwenji->objectName(), data.value<DamageStruct>().to->objectName());
-                room->notifySkillInvoked(caiwenji, objectName());
                 room->broadcastSkillInvoke(objectName(), caiwenji);
                 return true;
             }
@@ -984,7 +971,7 @@ public:
     }
 
     virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &data, ServerPlayer *) const{
-        bool invoke = player->hasShownSkill(this) ? true : room->askForSkillInvoke(player, objectName(), data);
+        bool invoke = player->hasShownSkill(this) ? true : player->askForSkillInvoke(this, data);
         if (invoke){
             room->broadcastSkillInvoke(objectName(), player);
             return true;
@@ -1053,8 +1040,8 @@ public:
         return QStringList();
     }
 
-    virtual bool cost(TriggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const{
-        if (!(player->hasShownSkill(this) || room->askForSkillInvoke(player, objectName()))){
+    virtual bool cost(TriggerEvent, Room *, ServerPlayer *player, QVariant &, ServerPlayer *) const{
+        if (!(player->hasShownSkill(this) || player->askForSkillInvoke(this))){
             player->tag.remove("lirang");
             return false;
         }
@@ -1284,7 +1271,7 @@ public:
     }
 
     virtual bool cost(TriggerEvent triggerEvent, Room *room, ServerPlayer *player, QVariant &, ServerPlayer *) const{
-        bool invoke = player->hasShownSkill(this) ? true : room->askForSkillInvoke(player, objectName(), (int)triggerEvent);
+        bool invoke = player->hasShownSkill(this) ? true : player->askForSkillInvoke(this, (int)triggerEvent);
         if (invoke){
             if (triggerEvent == Dying)
                 room->broadcastSkillInvoke(objectName(), 1, player);
@@ -1327,7 +1314,7 @@ public:
     }
 
     virtual bool cost(TriggerEvent, Room *room, ServerPlayer *panfeng, QVariant &data, ServerPlayer *) const{
-        if (panfeng->askForSkillInvoke(objectName(), data)){
+        if (panfeng->askForSkillInvoke(this, data)){
             room->doAnimate(QSanProtocol::S_ANIMATE_INDICATE, panfeng->objectName(), data.value<DamageStruct>().to->objectName());
             return true;
         }
@@ -1397,16 +1384,16 @@ public:
     }
 
     void doHuoshui(Room *room, ServerPlayer *zoushi, bool set) const{
-        if (set && zoushi->tag["huoshui"].toBool() == false){
-            foreach(ServerPlayer *p, room->getOtherPlayers(zoushi)){
+        if (set && !zoushi->tag["huoshui"].toBool()) {
+            foreach(ServerPlayer *p, room->getOtherPlayers(zoushi))
                 room->setPlayerDisableShow(p, "hd", "huoshui");
-            }
+
             zoushi->tag["huoshui"] = true;
         }
-        else if (!set && zoushi->tag["huoshui"].toBool() == true) {
-            foreach(ServerPlayer *p, room->getOtherPlayers(zoushi)){
+        else if (!set && zoushi->tag["huoshui"].toBool()) {
+            foreach(ServerPlayer *p, room->getOtherPlayers(zoushi))
                 room->removePlayerDisableShow(p, "huoshui");
-            }
+
             zoushi->tag["huoshui"] = false;
         }
     }

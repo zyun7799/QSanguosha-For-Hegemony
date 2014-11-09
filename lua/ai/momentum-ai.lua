@@ -26,9 +26,10 @@ end
 
 function sgs.ai_skill_invoke.wangxi(self, data)
 	local target = data:toPlayer()
-	if target and (self.player:isFriendWith(target) or self:isFriend(target)) then
-		return not self:needKongcheng(target, true)
-	elseif target and  not ( target:hasWeapon("Crossbow") or target:hasShownSkills("paoxiao|luanji|shuangxiong|qingnang|jizhi|xiaoji")	) then
+	if target 
+	and (self.player:isFriendWith(target) or self:isFriend(target)) 
+	and not ( target:getPhase() ~= sgs.Player_NotActive and (target:hasShownSkills(sgs.Active_cardneed_skill) or target:hasWeapon("Crossbow")) ) 
+	and not ( target:getPhase() == sgs.Player_NotActive and target:hasShownSkills(sgs.notActive_cardneed_skill) ) then	
 		return not self:needKongcheng(target, true)
 	else
 		return self:needKongcheng(target, true)
@@ -468,6 +469,11 @@ sgs.ai_skill_use["@@hongfa2"] = function(self)
 	if pn.m_reason == "wuxin" or "hongfa" == pn.m_reason or pn.m_reason == "PeaceSpell" then
 		return "@HongfaTianbingCard=" .. table.concat(ints, "+")
 	elseif pn.m_reason == "DragonPhoenix" or pn.m_reason == "xiongyi" then
+		return "."
+	elseif pn.m_reason == "fight_together" then
+		--@todo
+		return "."
+	elseif pn.m_reason == "IronArmor" then
 		return "."
 	else
 		self.room:writeToConsole("@@hongfa2 " .. pn.m_reason .. " is empty!")
