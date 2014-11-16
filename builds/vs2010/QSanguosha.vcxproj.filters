@@ -61,6 +61,10 @@
     </Filter>
     <Filter Include="Swig Files">
       <UniqueIdentifier>{9981aa0b-e6a2-412b-95d7-2e22d217b648}</UniqueIdentifier>
+    </Filter>    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -540,6 +544,8 @@
     </ClCompile>
     <ClCompile Include="Release\moc_window.cpp">
       <Filter>Generated Files\Release</Filter>
+    </ClCompile>    <ClCompile Include="GeneratedFiles\qrc_diy.cpp">
+      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Debug\moc_ai.cpp">
       <Filter>Generated Files\Debug</Filter>
