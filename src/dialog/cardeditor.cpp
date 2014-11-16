@@ -168,7 +168,7 @@ public:
     }
 
     void setKingdom(const QString &kingdom){
-        QPixmap title_pixmap(QString("diy/%1-skill.png").arg(kingdom));
+        QPixmap title_pixmap(QString(":/diy/%1-skill.png").arg(kingdom));
         setPixmap(title_pixmap);
 
         title_text->setDefaultTextColor(Qt::black);
@@ -262,7 +262,7 @@ public:
         title_text->document()->setDocumentMargin(0);
         title_text->setDefaultTextColor(QColor(255, 255, 255));
 
-        setPixmap(QPixmap("diy/companion.png"));
+        setPixmap(QPixmap(":/diy/companion.png"));
 
         setFlags(ItemIsFocusable);
     }
@@ -302,7 +302,7 @@ SkillBox::SkillBox()
     setAcceptedMouseButtons(Qt::LeftButton);
 
     skill_description = new AATextItem(tr("Skill description"), this);
-    skill_description->setTextWidth(273);
+    skill_description->setTextWidth(260);
     skill_description->setFlag(ItemIsMovable);
     skill_description->setTextInteractionFlags(Qt::TextEditorInteraction);
 
@@ -645,11 +645,11 @@ CardScene::CardScene()
 void CardScene::setFrame(const QString &kingdom, bool is_lord){
     QString path;
     if (is_lord) {
-        path = QString("diy/%1-lord.png").arg(kingdom);
+        path = QString(":/diy/%1-lord.png").arg(kingdom);
         title->setColor(QColor(171, 151, 90));
     }
     else {
-        path = QString("diy/%1.png").arg(kingdom);
+        path = QString(":/diy/%1.png").arg(kingdom);
         title->setColor(QColor(246, 241, 125));
     }
 
@@ -658,9 +658,9 @@ void CardScene::setFrame(const QString &kingdom, bool is_lord){
     for (int i = 0; i < magatamas.length(); i++){
         QGraphicsPixmapItem *item = magatamas[i];
         if (i % 2 == 0)
-            item->setPixmap(QPixmap(QString("diy/%1-magatama-l.png").arg(is_lord ? "lord" : kingdom)));
+            item->setPixmap(QPixmap(QString(":/diy/%1-magatama-l.png").arg(is_lord ? "lord" : kingdom)));
         else
-            item->setPixmap(QPixmap(QString("diy/%1-magatama-r.png").arg(is_lord ? "lord" : kingdom)));
+            item->setPixmap(QPixmap(QString(":/diy/%1-magatama-r.png").arg(is_lord ? "lord" : kingdom)));
     }
 
     skill_box->setKingdom(kingdom);
@@ -780,9 +780,9 @@ void CardScene::_redrawTransMaxHp(){
         if (i >= start - 1)
             suffix = "t";
         if (i % 2 == 0)
-            item->setPixmap(QPixmap(QString("diy/%1-magatama-l%2.png").arg(is_lord ? "lord" : kingdom).arg(suffix)));
+            item->setPixmap(QPixmap(QString(":/diy/%1-magatama-l%2.png").arg(is_lord ? "lord" : kingdom).arg(suffix)));
         else
-            item->setPixmap(QPixmap(QString("diy/%1-magatama-r%2.png").arg(is_lord ? "lord" : kingdom).arg(suffix)));
+            item->setPixmap(QPixmap(QString(":/diy/%1-magatama-r%2.png").arg(is_lord ? "lord" : kingdom).arg(suffix)));
     }
 }
 
@@ -1017,7 +1017,7 @@ void CardEditor::saveAvatar(const QRectF &rect){
         QPixmap pixmap = QPixmap::grabWidget(card_scene->views().first());
         pixmap = pixmap.copy(rect.toRect());
 
-        QBitmap mask("diy/mask.png");
+        QBitmap mask(":/diy/mask.png");
         pixmap.setMask(mask);
 
         painter.drawPixmap(0, 0, pixmap);

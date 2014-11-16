@@ -507,3 +507,6 @@ INCLUDEPATH += $$PWD/include/freetype
 DEPENDPATH += $$PWD/include/freetype
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/resource/android
+
+RESOURCES += \
+    diy.qrc
