@@ -1,0 +1,2 @@
+The X86 and arm Build Essentials is not configured.
+The X86 and arm version of freetype is not prebuilt.
