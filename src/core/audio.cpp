@@ -24,30 +24,37 @@
 #include <QCache>
 #include <fmod.hpp>
 
-class Sound;
+using namespace FMOD;
 
-static FMOD_SYSTEM *System;
-static QCache<QString, Sound> SoundCache;
-static FMOD_SOUND *BGM;
-static FMOD_CHANNEL *BGMChannel;
+class QSanSound;
 
-class Sound {
+static System *fmSystem;
+static QCache<QString, QSanSound> SoundCache;
+static Sound *BGM;
+static Channel *BGMChannel;
+
+class QSanSound {
 public:
-    Sound(const QString &filename) : sound(NULL), channel(NULL) {
-        FMOD_System_CreateSound(System, filename.toLatin1(), FMOD_DEFAULT, NULL, &sound);
+    QSanSound(const QString &filename) : sound(NULL), channel(NULL) {
+        fmSystem->createSound(filename.toLatin1(), FMOD_DEFAULT, NULL, &sound);
     }
 
-    ~Sound() {
-        if (sound) FMOD_Sound_Release(sound);
+    ~QSanSound() {
+        if (sound) {
+            if (channel)
+                channel->stop();
+
+            sound->release();
+        }
     }
 
     void play(const bool doubleVolume = false) {
         if (sound) {
-            FMOD_RESULT result = FMOD_System_PlaySound(System, FMOD_CHANNEL_FREE, sound, false, &channel);
+            FMOD_RESULT result = fmSystem->playSound(sound, NULL, false, &channel);
 
             if (result == FMOD_OK) {
-                FMOD_Channel_SetVolume(channel, (doubleVolume ? 2 : 1) * Config.EffectVolume);
-                FMOD_System_Update(System);
+                channel->setVolume((doubleVolume ? 2 : 1) * Config.EffectVolume);
+                fmSystem->update();
             }
         }
     }
@@ -55,34 +62,41 @@ public:
     bool isPlaying() const {
         if (channel == NULL) return false;
 
-        FMOD_BOOL is_playing = false;
-        FMOD_Channel_IsPlaying(channel, &is_playing);
-        return is_playing;
+        bool p = false;
+        channel->isPlaying(&p);
+
+        return p;
+    }
+
+    void stop() {
+        if (channel)
+            channel->stop();
     }
 
 private:
-    FMOD_SOUND *sound;
-    FMOD_CHANNEL *channel;
+    Sound *sound;
+    Channel *channel;
 };
 
-void Audio::init() {
-    FMOD_RESULT result = FMOD_System_Create(&System);
-    if (result == FMOD_OK) FMOD_System_Init(System, 100, 0, NULL);
+void QSanAudio::init() {
+    FMOD_RESULT result = System_Create(&fmSystem);
+    if (result == FMOD_OK)
+        fmSystem->init(100, 0, NULL);
 }
 
-void Audio::quit() {
-    if (System) {
+void QSanAudio::quit() {
+    if (fmSystem) {
         SoundCache.clear();
-        FMOD_System_Release(System);
+        fmSystem->release();
 
-        System = NULL;
+        fmSystem = NULL;
     }
 }
 
-void Audio::play(const QString &filename) {
-    Sound *sound = SoundCache[filename];
+void QSanAudio::play(const QString &filename) {
+    QSanSound *sound = SoundCache[filename];
     if (sound == NULL) {
-        sound = new Sound(filename);
+        sound = new QSanSound(filename);
         SoundCache.insert(filename, sound);
     } else if (sound->isPlaying()) {
         return;
@@ -91,56 +105,54 @@ void Audio::play(const QString &filename) {
     sound->play();
 }
 
-void Audio::playAudioOfMoxuan()
+void QSanAudio::playAudioOfMoxuan()
 {
-    Sound *sound = new Sound("audio/system/moxuan.ogg");
+    QSanSound *sound = new QSanSound("audio/system/moxuan.ogg");
+    SoundCache.insert("audio/system/moxuan.ogg", sound);
     sound->play(true);
 }
 
-void Audio::stop() {
-    if (System == NULL) return;
+void QSanAudio::stop() {
+    if (system == NULL) return;
 
-    int n;
-    FMOD_System_GetChannelsPlaying(System, &n);
+    QStringList cacheKeys = SoundCache.keys();
 
-    QList<FMOD_CHANNEL *> channels;
-    for (int i = 0; i < n; i++) {
-        FMOD_CHANNEL *channel;
-        FMOD_RESULT result = FMOD_System_GetChannel(System, i, &channel);
-        if (result == FMOD_OK) channels << channel;
+    foreach (const QString &key, cacheKeys) {
+        QSanSound *sound = SoundCache[key];
+        if (sound != NULL && sound->isPlaying())
+            sound->stop();
     }
-
-    foreach (FMOD_CHANNEL * const &channel, channels)
-        FMOD_Channel_Stop(channel);
 
     stopBGM();
 
-    FMOD_System_Update(System);
+    fmSystem->update();
 }
 
-void Audio::playBGM(const QString &filename) {
-    FMOD_RESULT result = FMOD_System_CreateStream(System, filename.toLocal8Bit(), FMOD_LOOP_NORMAL, NULL, &BGM);
+void QSanAudio::playBGM(const QString &filename) {
+    FMOD_RESULT result = fmSystem->createStream(filename.toLatin1(), FMOD_LOOP_NORMAL, NULL, &BGM);
 
     if (result == FMOD_OK) {
-        FMOD_Sound_SetLoopCount(BGM, -1);
-        FMOD_System_PlaySound(System, FMOD_CHANNEL_FREE, BGM, false, &BGMChannel);
+        BGM->setLoopCount(-1);
+        fmSystem->playSound(BGM, NULL, false, &BGMChannel);
 
-        FMOD_Channel_SetVolume(BGMChannel, Config.BGMVolume);
-        FMOD_System_Update(System);
+        BGMChannel->setVolume(Config.BGMVolume);
+        fmSystem->update();
     }
 }
 
-void Audio::setBGMVolume(float volume) {
-    if (BGMChannel) FMOD_Channel_SetVolume(BGMChannel, volume);
+void QSanAudio::setBGMVolume(float volume) {
+    if (BGMChannel)
+        BGMChannel->setVolume(volume);
 }
 
-void Audio::stopBGM() {
-    if (BGMChannel) FMOD_Channel_Stop(BGMChannel);
+void QSanAudio::stopBGM() {
+    if (BGMChannel)
+        BGMChannel->stop();
 }
 
-QString Audio::getVersion() {
+QString QSanAudio::getVersion() {
     unsigned int version = 0;
-    FMOD_System_GetVersion(System, &version);
+    fmSystem->getVersion(&version);
     // convert it to QString
     return QString("%1.%2.%3").arg((version & 0xFFFF0000) >> 16, 0, 16)
         .arg((version & 0xFF00) >> 8, 2, 16, QChar('0'))

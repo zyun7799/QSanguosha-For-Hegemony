@@ -345,8 +345,8 @@ linux{
 CONFIG(audio){
     DEFINES += AUDIO_SUPPORT
     INCLUDEPATH += include/fmod
-    CONFIG(debug, debug|release): LIBS += -lfmodexL
-    else:LIBS += -lfmodex
+    CONFIG(debug, debug|release): LIBS += -lfmodL
+    else:LIBS += -lfmod
     SOURCES += src/core/audio.cpp
 
     android{

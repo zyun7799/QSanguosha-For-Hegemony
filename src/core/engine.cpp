@@ -138,7 +138,7 @@ Engine::~Engine() {
     delete m_customScene;
     delete transfer;
 #ifdef AUDIO_SUPPORT
-    Audio::quit();
+    QSanAudio::quit();
 #endif
 
     foreach (ExpPattern * const &pattern, enginePatterns) {
@@ -866,7 +866,7 @@ void Engine::playAudioEffect(const QString &filename) const{
     if (filename.isNull())
         return;
 
-    Audio::play(filename);
+    QSanAudio::play(filename);
 #endif
 }
 

@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef AUDIO_SUPPORT
     showSplashMessage(QSplashScreen::tr("Initializing audio module..."));
-    Audio::init();
+    QSanAudio::init();
 #else
     if (!noGui)
         QMessageBox::warning(NULL, QMessageBox::tr("Warning"), QMessageBox::tr("Audio support is disabled when compiled"));

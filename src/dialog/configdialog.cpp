@@ -217,8 +217,8 @@ void ConfigDialog::setBgMusic(const QVariant &path)
     Config.setValue("BackgroundMusic", fileName);
 
 #ifdef AUDIO_SUPPORT
-    Audio::stopBGM();
-    Audio::playBGM(fileName);
+    QSanAudio::stopBGM();
+    QSanAudio::playBGM(fileName);
 #endif // AUDIO_SUPPORT
 }
 
@@ -240,10 +240,10 @@ void ConfigDialog::setBGMEnabled(const QVariant &enabled)
     if (RoomSceneInstance != NULL) {
         bool play = enabled.toBool();
         if (play) {
-            Audio::playBGM(Config.value("BackgroundMusic",
+            QSanAudio::playBGM(Config.value("BackgroundMusic",
                                         "audio/system/background.ogg").toString());
         } else {
-            Audio::stopBGM();
+            QSanAudio::stopBGM();
         }
     }
 #endif // AUDIO_SUPPORT
@@ -256,7 +256,7 @@ void ConfigDialog::setBGMVolume(const QVariant &volume)
 {
     float vol = volume.toInt() / 100.0;
 #ifdef AUDIO_SUPPORT
-    Audio::setBGMVolume(vol);
+    QSanAudio::setBGMVolume(vol);
 #endif // AUDIO_SUPPORT
 
     Config.BGMVolume = vol;

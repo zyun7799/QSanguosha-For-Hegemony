@@ -25,7 +25,7 @@
 
 #include <QString>
 
-class Audio {
+class QSanAudio {
 public:
     static void init();
     static void quit();

@@ -2937,7 +2937,7 @@ void RoomScene::onGameOver() {
         win_effect = "win";
         foreach (const Player *player, ClientInstance->getPlayers()) {
             if (player->property("win").toBool() && player->getGeneralName().contains("caocao")) {
-                Audio::stop();
+                QSanAudio::stop();
                 win_effect = "win-cc";
                 break;
             }
@@ -3525,9 +3525,9 @@ void RoomScene::speak() {
         Config.EnableBgMusic = true;
         Config.setValue("EnableBgMusic", true);
 #ifdef AUDIO_SUPPORT
-        Audio::stopBGM();
+        QSanAudio::stopBGM();
         QString bgmusic_path = Config.value("BackgroundMusic", "audio/system/background.ogg").toString();
-        Audio::playBGM(bgmusic_path);
+        QSanAudio::playBGM(bgmusic_path);
 #endif
     }
     else if (text.startsWith(".StartBgMusic=")) {
@@ -3540,8 +3540,8 @@ void RoomScene::speak() {
             Config.setValue("BackgroundMusic", path);
         }
 #ifdef AUDIO_SUPPORT
-        Audio::stopBGM();
-        Audio::playBGM(path);
+        QSanAudio::stopBGM();
+        QSanAudio::playBGM(path);
 #endif
     }
     else if (text == ".StopBgMusic") {
@@ -3549,7 +3549,7 @@ void RoomScene::speak() {
         Config.EnableBgMusic = false;
         Config.setValue("EnableBgMusic", false);
 #ifdef AUDIO_SUPPORT
-        Audio::stopBGM();
+        QSanAudio::stopBGM();
 #endif
     }
     if (broadcast) {
@@ -3648,7 +3648,7 @@ void RoomScene::onGameStart() {
         // start playing background music
         QString bgmusic_path = Config.value("BackgroundMusic", "audio/system/background.ogg").toString();
 
-        Audio::playBGM(bgmusic_path);
+        QSanAudio::playBGM(bgmusic_path);
     }
 #endif
     game_started = true;
@@ -3671,7 +3671,7 @@ void RoomScene::freeze() {
     item2player.clear();
     chatEdit->setEnabled(false);
 #ifdef AUDIO_SUPPORT
-    Audio::stopBGM();
+    QSanAudio::stopBGM();
 #endif
     dashboard->hideProgressBar();
     main_window->setStatusBar(NULL);

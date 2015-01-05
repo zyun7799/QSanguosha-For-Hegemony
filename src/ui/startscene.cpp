@@ -99,7 +99,7 @@ void StartScene::setServerLogBackground() {
 
 void StartScene::switchToServer(Server *server) {
 #ifdef AUDIO_SUPPORT
-    Audio::quit();
+    QSanAudio::quit();
 #endif
     logo->load("image/logo/logo-server.png");
     logo->setToolTip(QString());
@@ -155,7 +155,7 @@ void StartScene::showOrganization()
 {
 #ifdef AUDIO_SUPPORT
     if (shouldMourn)
-        Audio::playAudioOfMoxuan();
+        QSanAudio::playAudioOfMoxuan();
 #endif
 
     QSanSelectableItem *title = new QSanSelectableItem("image/system/organization.png", true);

@@ -1172,7 +1172,7 @@ void MainWindow::on_actionAbout_fmod_triggered() {
     content.append(tr("Official site: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(address));
 
 #ifdef AUDIO_SUPPORT
-    content.append(tr("Current versionn %1 <br/>").arg(Audio::getVersion()));
+    content.append(tr("Current versionn %1 <br/>").arg(QSanAudio::getVersion()));
 #endif
 
     Window *window = new Window(tr("About fmod"), QSize(500, 260));
